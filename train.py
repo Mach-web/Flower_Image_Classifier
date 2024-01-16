@@ -1,10 +1,10 @@
 from options import options_train
+from build_models import build_model
+
 import numpy as np
 import pandas as pd
-import matplotlib
-# import getattr(matplotlib, 'x') as plt
+import matplotlib.pyplot as plt
 
-import json
 import os
 import torch
 import importlib
@@ -12,19 +12,23 @@ import importlib
 from torchvision import datasets, transforms, models
 from torch import nn, optim
 from collections import OrderedDict
-print(transforms.__getattr__('Compose'))
 
 print("Finished importing python packages")
+
+# Define global variables
 args = options_train()
+project_path = os.getcwd()
+model_name = args.arch
 # %matplotlib inline
 # %config InlineBackend.figure_format = "retina"
 def main():
-    model()
+    images = prepare_data()
+    print(images['train_data'].class_to_idx)
+    # save_model()
 
 def prepare_data():
     # Define data paths
-    project_path = os.getcwd()
-    data_dir = project_path + args.save_dir
+    data_dir = project_path + "/" + args.data_dir
     train_dir = data_dir + "/train"
     valid_dir = data_dir + "/valid"
     test_dir = data_dir + "/test"
@@ -50,42 +54,21 @@ def prepare_data():
         "train_loader": torch.utils.data.DataLoader(image_datasets['train_data'], batch_size=64, shuffle=True),
         "valid_loader": torch.utils.data.DataLoader(image_datasets['valid_data'], batch_size=64, shuffle=True),
         "test_loader": torch.utils.data.DataLoader(image_datasets['test_data'], batch_size=64, shuffle=True)}
-    print("Data loading finished")
     return dataloaders
 
-def build_model():
-    model_name = args.arch
-    try:
-        model_module = importlib.import_module(f"torchvision.models.{model_name}")
-        model = getattr(model_module, model_name)()
-    except (ImportError, AttributeError) as e:
-        print(f"Error importing model: {e}")
-    print("Finished loading model")
-
-    # Freeze parameters
-    for param in model.parameters():
-        param.requires_grad = False
-
-    # create a classifier
-    hidden_units = args.hidden_units
-    classifier = nn.Sequential(OrderedDict([
-        ("layer1", nn.Linear(1664, hidden_units)),
-        ("relu", nn.ReLU()),
-        ("dropout", nn.Dropout(p = 0.2)),
-        ("layer2", nn.Linear(hidden_units, 102)),
-        ("output", nn.LogSoftmax(dim = 1))
-    ]))
-    model.classifier = classifier
-    return model
 
 def train_model():
-    model = build_model()
     dataloaders = prepare_data()
+    print("Data loading finished")
+
+    model = build_model(model_name)
+    print("Model built successfully")
     # choose either gpu or cpu
     gpu = args.gpu
     if gpu == 'True':
         if torch.cuda.is_available():
             processor = 'cuda'
+            print('cuda available')
         else:
             print("cuda is not available, defaulted to cpu")
             processor = 'cpu'
@@ -146,30 +129,31 @@ def train_model():
                   "Test Loss: {}".format(valid_loss),
                   "Test_accuracy: {}".format(valid_accuracy))
             model.train()
+    plt.plot(train_losses, label='Training loss');
+    plt.plot(valid_losses, label='Validation loss');
+    plt.legend(frameon=False);
     return model
 
-def model():
-    # Label mapping
-    with open(project_path + "/cat_to_name.json", "r") as f:
-        cat_to_name = json.load(f)
-    print("Loaded cat_to_name json file")
-
-    # Load the model from build model function
+def test_model():
+    dataloaders = prepare_data()
     model = train_model()
+    model.eval()
+    test_accuracy = 0
+    for images, labels in dataloaders['test_loader']:
+        with torch.no_grad():
+            logps = model.forward(images)
 
+            ps = torch.exp(logps)
+            top_p, top_k = ps.topk(1, dim=1)
+            equals = top_k.flatten() == labels
+            test_accuracy += torch.mean(equals.type(torch.FloatTensor))
+    print(f"The test accuracy is: {test_accuracy/len(dataloaders['test_loaders'])}")
+    return model
 
-
-
-
-
-
-
-
-
-
-
-
-
+def save_model():
+    model = test_model()
+    torch.save(model.state_dict(), project_path + args.save_dir + args.modelName)
+    print(f"Model saved successfully as {args.modelName}")
 
 if __name__ == "__main__":
     main()
