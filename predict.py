@@ -1,6 +1,7 @@
 from options import options_predict
 from build_models import build_model
 
+
 from PIL import Image
 from torchvision import transforms
 
@@ -12,15 +13,19 @@ import torch
 args = options_predict()
 project_path = os.getcwd()
 def main():
-    # unpack values in parser
-    print(args)
+    predict()
 
-def load_json():
+def load_cat_to_name():
     # Label mapping
     with open(project_path + "/" + args.category_names, "r") as f:
         cat_to_name = json.load(f)
     print("Loaded cat_to_name json file")
     return cat_to_name
+
+def load_class_to_idx():
+    with open(project_path + "/class_to_idx.json", "r") as f:
+        class_to_idx = json.load(f)
+    return class_to_idx
 
 def load_model():
     checkpoint_name = args.checkpoint
@@ -57,7 +62,12 @@ def predict():
         processor = 'cpu'
     image = preprocess_image()
     model = load_model()
+    class_to_idx = load_class_to_idx()
+    cat_to_name = load_cat_to_name()
     top_k = args.top_k
+
+    model.to(processor)
+    image.to(processor)
 
     logps = model.forward(image)
 
@@ -65,6 +75,11 @@ def predict():
     top_p, top_k = ps.topk(top_k, dim = 1)
 
 
+    top_predicted = [list(class_to_idx.keys())[i] for i in top_k.flatten()]
+    top_predicted = [cat_to_name[i] for i in top_predicted]
+    print("TOP PREDICTION")
+    for i, j in zip(top_predicted, top_p):
+        print(f"Flower name: {top_predicted}, Probability: {j}")
 
 
 if "__main__" == __name__:
