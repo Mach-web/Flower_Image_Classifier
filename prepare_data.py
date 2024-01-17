@@ -1,5 +1,6 @@
 from torchvision import transforms, datasets
 import torch
+import json
 
 def prepare_data(project_path, data_dir):
     # Define data paths
@@ -29,4 +30,8 @@ def prepare_data(project_path, data_dir):
         "train_loader": torch.utils.data.DataLoader(image_datasets['train_data'], batch_size=64, shuffle=True),
         "valid_loader": torch.utils.data.DataLoader(image_datasets['valid_data'], batch_size=64, shuffle=True),
         "test_loader": torch.utils.data.DataLoader(image_datasets['test_data'], batch_size=64, shuffle=True)}
-    return dataloaders, image_datasets['train_data'].class_to_idx
+    # Create a json file to hold class_to_idx
+    with open(project_path + "/class_to_idx.json", "w") as f:
+        json.dump(image_datasets['train_data'].class_to_idx, f)
+
+    return dataloaders
