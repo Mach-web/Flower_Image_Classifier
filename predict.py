@@ -40,6 +40,7 @@ def load_model():
 
 def preprocess_image():
     image = Image.open(args.path_image)
+    print("Opened image")
 
     transform_image = transforms.Compose([
         transforms.Resize(256),
@@ -53,7 +54,7 @@ def predict():
     gpu = args.gpu
     if gpu == 'True':
         if torch.cuda.is_available():
-            processor = 'gpu'
+            processor = 'cuda'
             print("gpu available")
         else:
             processor = 'cpu'
@@ -65,17 +66,17 @@ def predict():
     class_to_idx = load_class_to_idx()
     cat_to_name = load_cat_to_name()
     top_k = args.top_k
-
-    model.to(processor)
+    
     image.to(processor)
-
+    
+    image = image.unsqueeze(0)
     logps = model.forward(image)
 
     ps = torch.exp(logps)
     top_p, top_k = ps.topk(top_k, dim = 1)
 
 
-    top_predicted = [list(class_to_idx.keys())[i] for i in top_k.flatten()]
+    top_predicted = [list(class_to_idx.keys())[i] for i in top_k.view(-1)]
     top_predicted = [cat_to_name[i] for i in top_predicted]
     print("TOP PREDICTION")
     for i, j in zip(top_predicted, top_p):
