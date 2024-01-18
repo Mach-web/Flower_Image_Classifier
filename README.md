@@ -2,6 +2,13 @@
 
 Project code for Udacity's AI Programming with Python Nanodegree program. In this project, students first develop code for an image classifier built with PyTorch, then convert it into a command line application.
 
+# Data
+
+This project uses flower data which can be ([downloaded here](https://s3.amazonaws.com/content.udacity-data.com/nd089/flower_data.tar.gz))
+
+For this project, I have named the data folder  '/flower_data'.
+
+
 # Specifications
 
 In this first part of the project, you'll work through a Jupyter notebook to implement an image classifier with PyTorch. We'll provide some tips and guide you, but for the most part the code is left up to you. 
