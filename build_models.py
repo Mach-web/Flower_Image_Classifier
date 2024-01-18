@@ -14,10 +14,14 @@ def build_model(model_name, hidden_units = 512):
     # Freeze parameters
     for param in model.parameters():
         param.requires_grad = False
-
-#     return build_densenet169(model, hidden_units)
-#     return build_vgg16(model, hidden_units)
-    return build_densenet201(model, hidden_units)
+    if model_name == "densenet169":
+        return build_densenet169(model, hidden_units)
+    elif model_name == "vgg16":
+        return build_vgg16(model, hidden_units)
+    elif model_name == "densenet201":
+        return build_densenet201(model, hidden_units)
+    else:
+        print("Model not available.")
     
 def build_densenet169(model, hidden_units):
     # create a classifier
